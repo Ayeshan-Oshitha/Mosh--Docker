@@ -1,0 +1,33 @@
+version: "3.8" # Docker Compose file format version (must be a string)
+
+services:
+  myfrontend:
+    build: ./frontend # Build the frontend service from Dockerfile in ./frontend directory
+    ports:
+      - "3000:3000" # Map host port 3000 to container port 3000 (React, etc.)
+    depends_on:
+      - mybackend
+
+  mybackend:
+    build: ./backend # Build the backend service from Dockerfile in ./backend directory
+    ports:
+      - "3001:3001" # Map host port 3001 to container port 3001 (API server)
+    environment:
+      - DB_URL=mongodb://mydatabase:27017/vidly # Connection string for MongoDB (uses service name as hostname)
+      - CHOKIDAR_USEPOLLING=true # Enable polling so Nodemon detects file changes in bind-mounted volumes (needed for live reload on Windows/macOS)
+    volumes:
+      - ./backend:/app # Bind mount backend code for live updates without rebuilding / map "backend directory" in host to "app directory" in container
+      - /app/node_modules #  Keep node_modules inside the container (prevents overwrite) / # Avoid overwriting the host's node_modules with the container's node_modules when the host code is mapped to the container.
+    command: ./docker-entrypoint.sh # Run custom startup script inside container
+    depends_on:
+      - mydatabase
+
+  mydatabase:
+    image: mongo # Use official MongoDB image from Docker Hub
+    ports:
+      - "27017:27017" # Expose MongoDB default port
+    volumes:
+      - vidly:/data/db # Named volume for persistent MongoDB data
+
+volumes:
+  vidly: # Declare named volume to persist database files even after container is removed

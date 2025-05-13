@@ -1,0 +1,25 @@
+Old  --->  docker exec -it vidly-mydatabase-1 mongo --> container name & Image name
+New  --->  docker exec -it vidly-mydatabase-1 mongosh
+
+
+show dbs
+use vidly
+show collections
+db.movies.find().pretty()
+
+----------------------------------------------------------------------
+
+
+To see the Container Ports -->
+
+docker inspect -f "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}" vidly-mydatabase-1
+
+
+-----------------------------------------------------------------------
+
+
+Worked -->
+
+mongodb://host.docker.internal:27017
+
+

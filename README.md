@@ -8,6 +8,10 @@
 
 `docker run -d -p 3000:3000 -v <created_volume_name>:/app/data <image_name>`
 
+`docker-compose build --no-cache`
+
+`docker-compose up -d`
+
 # 001 - Introduction to Docker
 
 `docker build -t hello-docker .`
@@ -212,3 +216,141 @@ ex -> `docker cp secret.txt e1c:/app`
 ## Sharing the Source Code with a container
 
 To share your local source code with a container (for live development or testing), use bind mounts when running the container.
+
+# 004 - Running Multi Container Applications
+
+## JSON and YAML Formats
+
+```json
+{
+  "name": "The Ultimate Docker Course",
+  "price": 149,
+  "is_published": true,
+  "tags": ["software", "devops"],
+  "author": {
+    "first_name": "Mosh",
+    "last_name": "Hamedani"
+  }
+}
+```
+
+```yml
+---
+name: The Ultimate Docker Course
+price: 149
+is_published: true
+tags:
+  - software
+  - devops
+author:
+  - first_name": Mosh
+  - last_name": Hamedani
+```
+
+## Building Images
+
+`docker-compose build` - Build the Docker images using the cache (faster build if layers haven't changed)
+
+`docker-compose build --no-cache` - Build the Docker images without using any cache (forces a clean rebuild from scratch)
+
+## Starting and Stoping Applications
+
+`docker-compose up` - Start containers defined in docker-compose.yml (foreground mode)
+
+`docker-compose up -d` - Start containers in detached mode (runs in the background)
+
+`docker-compose up —build` - Build images before starting containers
+
+`docker-compose down` - Stop and remove containers, networks, and volumes defined by the compose file
+
+`docker-compose ps` - List running containers managed by docker-compose
+
+## Docker Networking
+
+- **DNS Server**  
+  A DNS (Domain Name System) server maps human-readable domain names (like `example.com`) to IP addresses. In Docker, a built-in DNS server allows containers to resolve each other's service names defined in `docker-compose.yml`.
+
+- **DNS Resolver**  
+  The DNS resolver is the component (often built into the OS or Docker network stack) that queries the DNS server to resolve domain names into IP addresses. In Docker Compose, containers use Docker's internal DNS resolver to find services by name (e.g., `db`, `backend`, etc.).
+
+- **Container**  
+  A container is a lightweight, isolated runtime environment that includes everything needed to run an application — code, runtime, system tools, libraries, and settings. In Docker Compose, each service spins up one or more containers.
+
+📌 Example:  
+In `docker-compose.yml`, if you define a service called `db`, other containers can simply use `db` as the hostname to connect to it (e.g., `mongodb://db:27017`), thanks to Docker’s internal DNS.
+
+## Viewing logs
+
+`docker-compose logs` - View logs from all containers (use -f to follow logs)
+
+## Publishing Chnages
+
+When you make changes to your application, you can publish those changes by using Docker Compose. For example, if you modify the code in the ./backend folder, the changes will be reflected inside the container because of the volume mount:
+
+```yml
+volumes:
+  - ./backend:/app
+```
+
+This allows you to live-update the code in your container without rebuilding the image. If you want to see the changes reflected after modifying other configurations, use docker-compose up --build to rebuild the images and restart the containers.
+
+---
+
+### `Problem` - Why is Nodemon missing when running the container, even though it's installed in the Docker image ?
+
+When you're using **Docker** and **mounting your local backend folder** into the container using this line in your `docker-compose.yml`:
+
+```yaml
+volumes:
+  - ./backend:/app
+```
+
+This Tells docker to
+
+_“Instead of using the `/app` folder built inside the container, replace it with the live `./backend` folder from your host machine.”_
+
+We need to install all the node_modules on our local machine if we want live editing.
+
+### `Problem` - If we need the code and modules from the local machine for live editing and previewing, what’s the point of using Docker images and containers? ?
+
+✅ Short Answer
+
+When you're using live code mounting (`volumes:` in `docker-compose`) for fast development, you're intentionally choosing to use your local code with Docker.
+
+The Docker image still matters — it's running the app in a controlled environment, even though the code is from your local system.
+
+---
+
+### Why Use Docker in Development?
+
+Even in development, Docker provides several key benefits:
+
+#### 1. **Standardized Environment**
+
+- Docker ensures everyone uses the same OS, Node.js version, and libraries.
+- No "it works on my machine" issues. Everyone (Windows, Mac, Linux) gets the same setup without installing Node, MongoDB, etc.
+
+#### 2. **Isolated Services**
+
+- Services like MongoDB, Redis, backend, and frontend run in separate containers.
+- Keeps your host system clean and isolated.
+
+#### 3. **Customizable Startup**
+
+- You can configure startup scripts, logging, DB seeding, environment variables, and more, all inside Docker.
+
+### `A Solution` - Prevent Host's NodeModules from Overriding the Container's NodeModules
+
+Normally, when we bind the host code to the container for live reloading, Docker watches for code changes on the host machine. However, when we do this, Docker also uses the host's node_modules instead of the container's node_modules.
+
+If you don't install node_modules on the host machine, you’ll get an error message saying that the node_modules are not found. This is what we discussed earlier.
+
+To avoid this issue and continue using the node_modules inside the container without relying on the host's node_modules, you can use the following code:
+
+```yaml
+volumes:
+  - ./backend:/app # Bind mount backend code from the host to the container for live updates
+  - /app/node_modules # Still uses the node_modules inside the container, without using the node_modules from the host machine.
+```
+
+This setup prevents the host's node_modules from overriding the container's node_modules when the host code is mapped to the container, ensuring that the container’s dependencies are used correctly.
