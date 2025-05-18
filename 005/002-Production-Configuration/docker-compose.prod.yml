@@ -1,0 +1,33 @@
+# Note: This Docker Compose file is meant for Section 004 – it assumes the folder structure from that section (./frontend, ./backend, etc.)
+
+version: "3.8"
+
+services:
+  myfrontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.prod
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
+  mybackend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_URL=mongodb://mydatabase:27017/vidly
+      - CHOKIDAR_USEPOLLING=true
+    command: ./docker-entrypoint.sh
+    restart: unless-stopped
+
+  mydatabase:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - vidly:/data/db
+    restart: unless-stopped
+
+volumes:
+  vidly:

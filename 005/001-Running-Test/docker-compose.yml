@@ -1,0 +1,42 @@
+# Note: This Docker Compose file is meant for Section 004 – it assumes the folder structure from that section (./frontend, ./backend, etc.)
+
+version: "3.8"
+
+services:
+  myfrontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mybackend
+
+    # Service to run frontend tests using the built image
+  frontend-tests:
+    image: videly-frontend-1 # Use the image built from the frontend service (named 'videly-frontend-1')
+    volumes:
+      - ./frontend:/app # Mount the local 'frontend' directory to '/app' inside the container
+    command: npm test # Run tests using npm when the container starts
+
+  mybackend:
+    build: ./backend
+    ports:
+      - "3001:3001"
+    environment:
+      - DB_URL=mongodb://mydatabase:27017/vidly
+      - CHOKIDAR_USEPOLLING=true
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+    command: ./docker-entrypoint.sh
+    depends_on:
+      - mydatabase
+
+  mydatabase:
+    image: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - vidly:/data/db
+
+volumes:
+  vidly:
